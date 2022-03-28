@@ -1,0 +1,106 @@
+pragma solidity ^0.4.21 ;
+pragma experimental ABIEncoderV2;
+import "./SafeMath.sol";
+
+
+contract Election{
+    using SafeMath for uint256;
+
+
+    struct Candidate{
+        string name;
+        uint voteCount;
+    }
+
+    struct Voter{
+        bool authorized;
+        bool voted;
+        uint vote;
+    }
+
+    address public owner;
+    string public electionName;
+
+    mapping(address =>Voter) public voters;
+    Candidate[] public candidates;
+    uint public totalVotes;
+
+    modifier ownerOnly(){
+        _;
+        require(msg.sender == owner);
+    }
+
+    function Election(string _name) public {
+        owner = msg.sender;
+        electionName =_name;
+    }
+
+    function addCandidate(string _name) ownerOnly public {
+        candidates.push(Candidate(_name,0));
+    }
+
+    function deleteCandidate(uint _numCandidate) ownerOnly public {
+        delete candidates[_numCandidate];
+    }
+
+    function getNumCandidate() public view returns(uint) {
+        return candidates.length;
+    }
+    function getNameCandidate() public view returns(Candidate[] memory) {
+        return candidates;
+    }
+
+    function authorize(address _person) ownerOnly public {
+        voters[_person].authorized = true;
+    }
+
+     function unauthorize(address _person) ownerOnly public {
+        voters[_person].authorized = false;
+    }
+
+    function vote(uint _voteIndex) public {
+        require(!voters[msg.sender].voted);
+        require(voters[msg.sender].authorized);
+        voters[msg.sender].vote = _voteIndex;
+        voters[msg.sender].voted = true;
+        candidates[_voteIndex].voteCount +=1;
+        totalVotes +=1;
+    }
+
+    function getVoteCount(uint index) public view returns(uint) {
+        return candidates[index].voteCount;
+    }
+ 
+    function getWhoWin() public view returns(string)
+    {
+        uint nbVote = 0;
+        
+        uint index =0;
+        while (index < candidates.length) {
+            if (nbVote <candidates[index].voteCount){
+                uint indexWinner = index;
+                uint nbVoteWinner = candidates[index].voteCount;    
+                index +=1;         
+            }
+              if (nbVote == candidates[index].voteCount){
+                uint indexWinner2 = index;
+                uint nbVoteWinner2 = candidates[index].voteCount;    
+                index +=1;   }
+            else{
+                index +=1;
+            }      
+            
+        }
+        string memory str_1 = candidates[indexWinner].name;
+        string memory str_2 = " est le gagnant !";
+        string memory result = string(abi.encodePacked(str_1, str_2));
+
+        return result;
+
+    }
+
+    function end() ownerOnly public {
+        selfdestruct(owner);
+    } 
+
+}
